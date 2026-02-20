@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#E23636">
+    <title>Spider-OS 3D</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; color: white; }
+        canvas { display: block; }
+        
+        /* HUD Overlay */
+        #hud {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; border: 2px solid rgba(0, 242, 255, 0.1); box-sizing: border-box;
+        }
+        .status-bar { 
+            position: absolute; top: 10px; width: 90%; left: 5%; 
+            display: flex; justify-content: space-between; font-size: 12px; color: #00f2ff;
+            text-shadow: 0 0 5px #00f2ff;
+        }
+
+        /* App Window */
+        .window {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 80%; height: 50%; background: rgba(10, 10, 20, 0.95);
+            border: 2px solid #E23636; border-radius: 20px; display: none;
+            pointer-events: auto; padding: 25px; box-shadow: 0 0 30px rgba(226, 54, 54, 0.6);
+            backdrop-filter: blur(10px); text-align: center;
+        }
+        .close-btn {
+            background: #E23636; border: none; color: white; padding: 10px 20px;
+            border-radius: 10px; margin-top: 20px; cursor: pointer; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="hud">
+        <div class="status-bar">
+            <span>STARK-TECH OS v4.2</span>
+            <span id="clock">12:00</span>
+        </div>
+        <div id="app-window" class="window">
+            <h2 id="app-title">SYSTEM</h2>
+            <p id="app-content">Accessing encrypted data...</p>
+            <button class="close-btn" onclick="closeApp()">BACK TO HUB</button>
+        </div>
+    </div>
+
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 1. Particle "Web" Background
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 800;
+        const posArray = new Float32Array(starsCount * 3);
+        for(let i=0; i<starsCount*3; i++) posArray[i] = (Math.random() - 0.5) * 20;
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starsMaterial = new THREE.PointsMaterial({ size: 0.04, color: 0x00f2ff, transparent: true, opacity: 0.6 });
+        scene.add(new THREE.Points(starsGeometry, starsMaterial));
+
+        // 2. 3D App Nodes
+        const apps = [];
+        const createNode = (name, color, x, y, z) => {
+            const geo = new THREE.IcosahedronGeometry(0.6, 1);
+            const mat = new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.4, wireframe: true });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.userData = { name };
+            scene.add(mesh);
+            apps.push(mesh);
+        };
+
+        createNode("Daily Bugle", 0xE23636, -1.5, 1, 0);
+        createNode("Crime Net", 0x00f2ff, 1.5, 1, 0);
+        createNode("Suit Lab", 0xFFFFFF, 0, -1.5, 0);
+
+        const light = new THREE.PointLight(0xffffff, 80);
+        light.position.set(0, 0, 8);
+        scene.add(light, new THREE.AmbientLight(0x202020));
+        camera.position.z = 6;
+
+        // 3. Touch & Interaction
+        window.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            const mouse = new THREE.Vector2(
+                (touch.clientX / window.innerWidth) * 2 - 1,
+                -(touch.clientY / window.innerHeight) * 2 + 1
+            );
+            
+            if(navigator.vibrate) navigator.vibrate(40); // Haptic feedback
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            const found = raycaster.intersectObjects(apps);
+
+            if(found.length > 0) {
+                const name = found[0].object.userData.name;
+                document.getElementById('app-window').style.display = 'block';
+                document.getElementById('app-title').innerText = name.toUpperCase();
+                document.getElementById('app-content').innerText = "Establishing secure connection to " + name + "...";
+            }
+        });
+
+        window.closeApp = () => document.getElementById('app-window').style.display = 'none';
+
+        function updateClock() {
+            const d = new Date();
+            document.getElementById('clock').innerText = d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0');
+        }
+        setInterval(updateClock, 1000);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            apps.forEach(a => { a.rotation.y += 0.01; a.rotation.x += 0.005; });
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

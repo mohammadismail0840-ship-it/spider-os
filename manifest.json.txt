@@ -1,0 +1,15 @@
+{
+  "name": "Spider-OS 3D",
+  "short_name": "SpiderOS",
+  "start_url": "index.html",
+  "display": "fullscreen",
+  "background_color": "#000000",
+  "theme_color": "#E23636",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/6295/6295417.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
